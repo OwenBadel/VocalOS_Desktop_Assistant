@@ -1,24 +1,33 @@
-# 🎙️ VocalOS Desktop Assistant
+# 🎙️ VocalOS Desktop Assistant (Daemon en Segundo Plano)
 
-> **Asistente Operativo de Escritorio con Biometría Vocal y Control Autónomo del SO**  
+> **Servicio de Voz en Segundo Plano con Biometría Vocal y Control Autónomo de Windows**  
 > **Titular y Autoría:** Owen Badel Hooker — Ingeniero de Sistemas  
-> **Proyecto:** `PROJ-014` | **Arquitectura:** `ARQ-006` | **Diseño:** Google Stitch "Obsidian Cyber-Glass OS"
+> **Proyecto:** `PROJ-014` | **Arquitectura:** `ARQ-006` | **Empaquetado:** Inno Setup Ready
 
 ---
 
 ## 📌 Visión General
-**VocalOS** es un asistente de escritorio avanzado para Windows diseñado para operar con **Zero-Trust Acústico**: procesa peticiones de voz para controlar de forma autónoma la terminal de comandos, el navegador predeterminado, el sistema de archivos y el centro de entretenimiento, pero **restringe estrictamente la ejecución a la voz biométrica de su propietario (Owen Badel Hooker)**.
+**VocalOS Daemon** es un servicio de escritorio de Windows diseñado para operar de forma 100% silenciosa en **segundo plano (sin necesidad de navegador ni interfaz web abierta)**. Permite que el usuario esté en la cama o lejos del escritorio y le dé instrucciones directas por voz a su computadora:
+
+* *"Reprodúceme en VLC el anime Owari no Seraph"* $\to$ Escanea los discos duros locales (especialmente `D:\Anime`), encuentra la carpeta de capítulos y lanza **VLC Media Player**.
+* *"Abre la carpeta descargas"* $\to$ Abre el explorador de Windows en la ruta solicitada.
+* *"Inicia el juego R.E.P.O."* o *"Abre PEAK"* $\to$ Lanza los juegos a través de Steam.
+* *"Pon música en Spotify"* $\to$ Controla la reproducción y búsqueda musical.
+* *"Terminal [comando]"* $\to$ Ejecuta comandos de PowerShell de forma autónoma.
+* *"Crea/Edita/Borra el archivo [nombre]"* $\to$ Manipula archivos del sistema.
 
 ```mermaid
 graph LR
-    Mic["🎤 Entrada de Voz"] --> Bio["🛡️ Verificación Biométrica (Similitud Coseno >= 78%)"]
-    Bio -->|✅ Aprobado| Intent["🧠 Parser de Intenciones"]
-    Bio -->|❌ Rechazado| Alert["🚫 Bloqueo: Voz No Autorizada"]
+    Mic["🎤 Micrófono en Segundo Plano (sounddevice)"] --> VAD["🔊 Detección de Actividad Vocal (VAD RMS)"]
+    VAD --> Bio["🛡️ Filtro Biométrico (Huella Acústica de Owen)"]
+    Bio -->|❌ Impostor| Ignore["🤫 Descarte Silencioso"]
+    Bio -->|✅ Owen Badel Hooker| STT["⚡ Faster-Whisper Local (CPU int8)"]
+    STT --> Dispatcher["🧠 Despachador de Comandos"]
     
-    Intent --> Term["💻 Terminal PowerShell Autónoma"]
-    Intent --> Browser["🌐 Navegador Predeterminado"]
-    Intent --> FS["📁 Gestor de Archivos (Crear, Editar, Borrar)"]
-    Intent --> Media["🎮 Videojuegos (R.E.P.O., PEAK) & Spotify"]
+    Dispatcher --> VLC["🎬 Buscador de Discos D: & VLC Player"]
+    Dispatcher --> Games["🎮 Steam: R.E.P.O. / PEAK"]
+    Dispatcher --> Explorer["📁 Apertura de Carpetas Windows"]
+    Dispatcher --> Term["💻 Terminal PowerShell Autónoma"]
 ```
 
 ---
@@ -51,23 +60,31 @@ graph LR
 
 ---
 
-## 🛠️ Instalación y Puesta en Marcha
-
-### Prerrequisitos
-* Python 3.11 o superior.
-* Windows 10/11 con PowerShell.
-* Navegador moderno compatible con Web Audio API y Web Speech API (Edge, Chrome).
-
-### Instalación de Dependencias
+## 🛠️ Puesta en Marcha en Segundo Plano
 ```bash
+# 1. Instalar dependencias si es necesario
 pip install -r requirements.txt
+
+# 2. Ejecutar el daemon de segundo plano directamente (Modo Consola)
+python vocalos_daemon.py
+
+# O ejecutar con icono discreto en la Bandeja del Sistema (System Tray)
+python vocalos_daemon.py --tray
 ```
 
-### Ejecución del Asistente
+### 🧪 Probar el Pipeline Completo con Audio de Prueba
 ```bash
-python run.py
+python simulate_voice_command.py
 ```
-El comando iniciará el servidor en `http://127.0.0.1:8000` y abrirá automáticamente la interfaz de escritorio en el navegador predeterminado.
+
+### 📦 Compilación a Ejecutable e Instalador con Inno Setup
+1. Compilar los binarios con PyInstaller:
+   ```bash
+   packaging\build_executable.bat
+   ```
+2. Compilar el instalador con Inno Setup:
+   - Abrir y compilar `packaging\VocalOS_Installer.iss` en **Inno Setup Compiler**.
+   - Se generará el instalador final `dist\VocalOS_Instalador_v1.0.exe` con opción de autoinicio con Windows.
 
 ---
 
