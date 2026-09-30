@@ -14,12 +14,66 @@ from typing import Callable, Optional
 
 
 class VoiceListener:
+    @staticmethod
+    def list_input_devices() -> list[dict]:
+        """Retorna lista de micrófonos detectados en el sistema."""
+        devices = []
+        try:
+            for idx, dev in enumerate(sd.query_devices()):
+                if dev.get("max_input_channels", 0) > 0:
+                    devices.append({
+                        "index": idx,
+                        "name": dev["name"],
+                        "channels": dev["max_input_channels"]
+                    })
+        except Exception as e:
+            print(f"[VoiceListener] Error listando dispositivos: {e}")
+        return devices
+
+    @staticmethod
+    def resolve_device(target: Optional[str | int] = "nvidia") -> tuple[Optional[int], str]:
+        """Resuelve el índice y nombre del dispositivo de audio según patrón o índice."""
+        devices = VoiceListener.list_input_devices()
+        if not devices:
+            return None, "Dispositivo predeterminado del sistema"
+
+        # Si target es un entero
+        if isinstance(target, int):
+            for d in devices:
+                if d["index"] == target:
+                    return d["index"], d["name"]
+
+        # Si target es string (e.g. "nvidia" o "broadcast")
+        if isinstance(target, str) and target.strip():
+            query = target.lower().strip()
+            for d in devices:
+                if query in d["name"].lower():
+                    return d["index"], d["name"]
+
+        # Fallback a NVIDIA si no se especificó o no se encontró
+        for d in devices:
+            if "nvidia" in d["name"].lower():
+                return d["index"], d["name"]
+
+        # Fallback al predeterminado del sistema
+        try:
+            default_in = sd.default.device[0]
+            if default_in is not None and default_in >= 0:
+                for d in devices:
+                    if d["index"] == default_in:
+                        return d["index"], d["name"]
+        except Exception:
+            pass
+
+        return (devices[0]["index"], devices[0]["name"]) if devices else (None, "Desconocido")
+
     def __init__(
         self,
         sample_rate: int = 16000,
         energy_threshold: int = 900,
         silence_duration_seconds: float = 0.9,
         max_phrase_seconds: float = 12.0,
+        device_name_or_index: Optional[str | int] = "nvidia",
         on_phrase_callback: Optional[Callable[[np.ndarray], None]] = None
     ):
         self.sample_rate = sample_rate
@@ -28,6 +82,7 @@ class VoiceListener:
         self.max_phrase_seconds = max_phrase_seconds
         self.on_phrase_callback = on_phrase_callback
         
+        self.device_index, self.device_name = self.resolve_device(device_name_or_index)
         self.is_running = False
         self.stream: Optional[sd.InputStream] = None
 
@@ -44,9 +99,10 @@ class VoiceListener:
         is_speaking = False
         silence_start_time = None
 
-        print(f"[VoiceListener] Escuchando en segundo plano a 16 kHz (Umbral RMS: {self.energy_threshold})...")
+        print(f"[VoiceListener] 🎙️ Escuchando con micrófono '{self.device_name}' (ID: {self.device_index}) a 16 kHz (Umbral RMS: {self.energy_threshold})...")
 
         with sd.InputStream(
+            device=self.device_index,
             samplerate=self.sample_rate,
             channels=1,
             dtype="int16",

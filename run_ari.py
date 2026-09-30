@@ -46,9 +46,12 @@ class AudioListenerWorker(QObject):
     phrase_captured = pyqtSignal(object)  # np.ndarray
     status_changed = pyqtSignal(str)
 
-    def __init__(self, energy_threshold: int = 850):
+    def __init__(self, energy_threshold: int = 850, device: Optional[str | int] = "nvidia"):
         super().__init__()
         self.energy_threshold = energy_threshold
+        self.device = device
+        # Resolver nombre de antemano
+        _, self.device_name = VoiceListener.resolve_device(device)
         self.listener: VoiceListener | None = None
         self._is_active = True
 
@@ -57,9 +60,11 @@ class AudioListenerWorker(QObject):
         self.listener = VoiceListener(
             energy_threshold=self.energy_threshold,
             silence_duration_seconds=0.85,
+            device_name_or_index=self.device,
             on_phrase_callback=self._on_phrase
         )
-        self.status_changed.emit("Oyente activo")
+        self.device_name = self.listener.device_name
+        self.status_changed.emit(f"Oyente activo ({self.device_name})")
         self.listener.start()
 
     def _on_phrase(self, audio):
@@ -76,10 +81,11 @@ class AriAppController(QObject):
     """
     Controlador central que orquesta la interfaz gráfica, el oyente y la ejecución de órdenes.
     """
-    def __init__(self, enable_voice: bool = True, energy_threshold: int = 850):
+    def __init__(self, enable_voice: bool = True, energy_threshold: int = 850, mic: Optional[str | int] = "nvidia"):
         super().__init__()
         self.enable_voice = enable_voice
         self.energy_threshold = energy_threshold
+        self.mic = mic
 
         print("\n" + "=" * 65)
         print("🌸 ARI — ASISTENTE OPERATIVO DE ESCRITORIO (EN ESPAÑOL)")
@@ -131,14 +137,16 @@ class AriAppController(QObject):
     def _setup_voice_listener(self):
         """Inicializa el hilo en segundo plano para escuchar continuamente."""
         self.listener_thread = QThread()
-        self.listener_worker = AudioListenerWorker(energy_threshold=self.energy_threshold)
+        self.listener_worker = AudioListenerWorker(energy_threshold=self.energy_threshold, device=self.mic)
         self.listener_worker.moveToThread(self.listener_thread)
+
+        self.character.active_mic_name = self.listener_worker.device_name
 
         self.listener_thread.started.connect(self.listener_worker.start_listening)
         self.listener_worker.phrase_captured.connect(self.on_audio_phrase_received)
 
         self.listener_thread.start()
-        print("[Ari] Oyente en segundo plano iniciado exitosamente.")
+        print(f"[Ari] Oyente en segundo plano iniciado exitosamente con micrófono: {self.listener_worker.device_name}")
 
     @pyqtSlot(object)
     def on_audio_phrase_received(self, audio_data):
@@ -241,8 +249,18 @@ def main():
     parser = argparse.ArgumentParser(description="Ari Desktop Assistant en Español — Owen Badel Hooker")
     parser.add_argument("--no-voice", action="store_true", help="Desactivar captura por micrófono para pruebas de GUI")
     parser.add_argument("--energy", type=int, default=850, help="Umbral de energía RMS para VAD (def: 850)")
+    parser.add_argument("--mic", type=str, default="nvidia", help="Nombre o índice del micrófono a utilizar (def: 'nvidia')")
+    parser.add_argument("--list-mics", action="store_true", help="Listar todos los micrófonos de entrada disponibles y salir")
     parser.add_argument("--test-cmd", type=str, default=None, help="Ejecutar un comando de prueba y salir")
     args = parser.parse_args()
+
+    if args.list_mics:
+        print("=" * 65)
+        print("🎙️ MICRÓFONOS DE ENTRADA DISPONIBLES EN WINDOWS:")
+        for d in VoiceListener.list_input_devices():
+            print(f"  [{d['index']:2d}] {d['name']} ({d['channels']} canales)")
+        print("=" * 65)
+        return
 
     # Si se pide únicamente probar un comando directo por consola
     if args.test_cmd:
@@ -261,7 +279,8 @@ def main():
 
     controller = AriAppController(
         enable_voice=not args.no_voice,
-        energy_threshold=args.energy
+        energy_threshold=args.energy,
+        mic=args.mic
     )
 
     app.aboutToQuit.connect(controller.shutdown)

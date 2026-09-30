@@ -184,6 +184,12 @@ class CharacterWidget(QWidget):
             }
         """)
 
+        # Indicador de micrófono configurado
+        mic_label = getattr(self, "active_mic_name", "NVIDIA Broadcast")
+        act_mic = QAction(f"🎤 Mic: {mic_label}", self)
+        act_mic.setEnabled(False)
+        menu.addAction(act_mic)
+
         act_listen = QAction("🎙️ Escuchar orden ahora", self)
         act_listen.triggered.connect(lambda: self.request_listen_signal.emit())
         menu.addAction(act_listen)
