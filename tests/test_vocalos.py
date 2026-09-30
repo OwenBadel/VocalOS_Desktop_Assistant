@@ -134,6 +134,24 @@ class TestVocalOS(unittest.TestCase):
         r6 = self.intent_parser.parse_and_execute("borra el archivo reporte.md")
         self.assertEqual(r6["intent"], "delete_file")
 
+    def test_media_searcher_and_dispatcher(self):
+        """Verifica que el buscador localice anime en disco D: y el despachador arme la orden de VLC."""
+        from core.media_searcher import MediaSearcher
+        from core.command_dispatcher import CommandDispatcher
+
+        searcher = MediaSearcher()
+        dispatcher = CommandDispatcher(media_searcher=searcher)
+
+        # Probar búsqueda de Owari no Seraph
+        found = searcher.find_media("Owari no Seraph")
+        self.assertIsNotNone(found, "Debe encontrar la carpeta o archivo de Owari no Seraph en D:")
+        self.assertIn("Owari", found["title"])
+
+        # Probar despacho del comando que dio el usuario en el audio
+        dispatch_res = dispatcher.dispatch("reproduceme en vlc el anime owari no seraph")
+        self.assertEqual(dispatch_res["action"], "play_vlc")
+        self.assertIn("owari no seraph", dispatch_res["target"].lower())
+
 
 if __name__ == "__main__":
     unittest.main()
