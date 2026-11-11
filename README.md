@@ -3,7 +3,7 @@
 > **Asistente de Escritorio con Personaje Animado Flotante, Biometría Vocal Zero-Trust y Control Autónomo de Windows**  
 > **Titular y Autoría:** Owen Badel Hooker — Ingeniero de Sistemas  
 > **Basado en la arquitectura:** [Ari-VoiceCommand](https://github.com/DO0OG/Ari-VoiceCommand) (Adaptada al 100% en Español)  
-> **Proyecto:** `PROJ-014` | **Empaquetado:** Inno Setup Ready
+> **Empaquetado:** Inno Setup Ready
 
 ---
 

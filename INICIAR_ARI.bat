@@ -8,7 +8,11 @@ setlocal
 cd /d "%~dp0"
 
 echo [Ari] Iniciando Asistente de Escritorio...
-"python" run_ari.py
+if exist "%LOCALAPPDATA%\Programs\Python\Python312\python.exe" (
+    "%LOCALAPPDATA%\Programs\Python\Python312\python.exe" run_ari.py
+) else (
+    python run_ari.py
+)
 
 if errorlevel 1 (
     echo.

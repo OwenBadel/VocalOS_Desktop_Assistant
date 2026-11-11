@@ -6,6 +6,7 @@ Autor: Owen Badel Hooker
 """
 
 from __future__ import annotations
+import os
 import sys
 from pathlib import Path
 import imageio_ffmpeg
@@ -74,6 +75,6 @@ def test_with_real_audio(audio_path: str):
 
 
 if __name__ == "__main__":
-    default_audio = r"data/sample_voice.wav"
+    default_audio = os.getenv("TEST_AUDIO_PATH", "data/sample_voice.wav")
     audio_file = sys.argv[1] if len(sys.argv) > 1 else default_audio
     test_with_real_audio(audio_file)

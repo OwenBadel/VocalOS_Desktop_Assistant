@@ -189,8 +189,8 @@ class CommandRegistry:
             "escritorio": home / "Desktop",
             "musica": home / "Music",
             "videos": home / "Videos",
-            "anime": Path("D:/Anime"),
-            "proyectos": Path("~/Projects"),
+            "anime": Path(os.getenv("ANIME_DIR", "D:/Anime")),
+            "proyectos": Path(os.getenv("PROJECTS_DIR", str(home / "Projects"))),
             "d": Path("D:/"),
             "disco d": Path("D:/")
         }

@@ -133,8 +133,7 @@ class OSController:
             "imagenes": home / "Pictures",
             "fotos": home / "Pictures",
             "videos": home / "Videos",
-            "proyectos": Path("~/Projects"),
-            "fabrica": Path("./workspace"),
+            "proyectos": Path(os.getenv("PROJECTS_DIR", str(home / "Projects"))),
             "anime": home / "Videos" / "Anime"
         }
 

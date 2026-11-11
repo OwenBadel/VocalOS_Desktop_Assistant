@@ -4,5 +4,8 @@ __pycache__/
 venv/
 .env
 data/recordings/
+data/voice_profile.json
+dist/
+build/
 *.log
 .DS_Store
